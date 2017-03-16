@@ -4,6 +4,9 @@
 
 This [Grunt](http://gruntjs.com/) plugin is wrapper of [preProc](https://github.com/anseki/pre-proc).
 
+* [gulp](http://gulpjs.com/) plugin: [gulp-pre-proc](https://github.com/anseki/gulp-pre-proc)
+* [webpack](https://webpack.js.org/) loader: [pre-proc-loader](https://github.com/anseki/pre-proc-loader)
+
 The super simple preprocessor for front-end development.  
 See [preProc](https://github.com/anseki/pre-proc) for options and more information about preProc.
 
@@ -32,11 +35,12 @@ grunt.initConfig({
   preProc: {
     deploy: {
       options: {
-        removeTag: {tag: 'DEBUG'}
+        // Remove `DEBUG` contents from all files in `dir1` directory and all JS files.
+        removeTag: {tag: 'DEBUG', pathTest: ['/path/to/dir1', /\.js$/]}
       },
       expand: true,
       cwd: 'develop/',
-      src: '**/*.js',
+      src: '**/*',
       dest: 'public_html/'
     }
   }

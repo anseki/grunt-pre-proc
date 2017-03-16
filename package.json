@@ -16,7 +16,7 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
-    "pre-proc": "~0.2.0"
+    "pre-proc": "~0.2.4"
   },
   "peerDependencies": {
     "grunt": ">=0.4.0"
