@@ -26,7 +26,7 @@ Once the plugin has been installed, it may be enabled inside your Gruntfile with
 grunt.loadNpmTasks('grunt-pre-proc');
 ```
 
-## The "preProc" task
+## Usage
 
 In your project's Gruntfile, add a section named `preProc` to the data object passed into `grunt.initConfig()`.
 
