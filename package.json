@@ -1,6 +1,6 @@
 {
   "name": "grunt-pre-proc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "title": "grunt-pre-proc",
   "description": "The super simple preprocessor for front-end development.",
   "keywords": [
@@ -16,7 +16,7 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
-    "pre-proc": "~0.2.6"
+    "pre-proc": "~0.2.7"
   },
   "peerDependencies": {
     "grunt": ">=0.4.0"
