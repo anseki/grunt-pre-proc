@@ -19,41 +19,54 @@ module.exports = function(grunt) {
       var srcPath, pathTest;
 
       // Concat specified files.
-      var src = f.src.filter(function(filepath) {
-        // Warn on and remove invalid source files (if nonull was set).
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
-          return false;
-        } else {
+      var srcFiles = f.src.filter(function(filepath) {
+          // Warn on and remove invalid source files (if nonull was set).
+          if (!grunt.file.exists(filepath)) {
+            grunt.log.warn('Source file "' + filepath + '" not found.');
+            return false;
+          }
           if (!srcPath) { srcPath = require('path').resolve(filepath); }
           return true;
-        }
-      }).map(function(filepath) {
-        return grunt.file.read(filepath);
-      }).join(grunt.util.linefeed);
+        }),
+        content = srcFiles.length
+          ? srcFiles.map(function(filepath) { return grunt.file.read(filepath); })
+            .join(grunt.util.linefeed) :
+          null;
+
+      if (content == null) { return; }
 
       // pickTag
       if (options.pickTag) {
-        src = preProc.pickTag(options.pickTag.tag || options.tag, src);
+        content = preProc.pickTag(options.pickTag.tag || options.tag, content);
       }
 
-      // replaceTag
-      if (options.replaceTag) {
-        pathTest = options.replaceTag.pathTest || options.pathTest;
-        src = preProc.replaceTag(options.replaceTag.tag || options.tag,
-          options.replaceTag.replacement, src, pathTest ? srcPath : null, pathTest);
-      }
+      if (content != null) {
+        // replaceTag
+        if (options.replaceTag) {
+          pathTest = options.replaceTag.pathTest || options.pathTest;
+          content = preProc.replaceTag(options.replaceTag.tag || options.tag,
+            options.replaceTag.replacement, content, pathTest ? srcPath : null, pathTest);
+        }
 
-      // removeTag
-      if (options.removeTag) {
-        pathTest = options.removeTag.pathTest || options.pathTest;
-        src = preProc.removeTag(options.removeTag.tag || options.tag,
-          src, pathTest ? srcPath : null, pathTest);
-      }
+        // removeTag
+        if (options.removeTag) {
+          pathTest = options.removeTag.pathTest || options.pathTest;
+          content = preProc.removeTag(options.removeTag.tag || options.tag,
+            content, pathTest ? srcPath : null, pathTest);
+        }
 
-      // Write the destination file.
-      grunt.file.write(f.dest, src);
-      grunt.log.writeln('File "' + f.dest + '" created.');
+        // Write the destination file.
+        grunt.file.write(f.dest, content);
+        grunt.log.writeln('File "' + f.dest + '" created.');
+
+      } else { // The content was changed to null by pickTag.
+        var errorMessage = 'Not found tag: ' + (options.pickTag.tag || options.tag);
+        if (!options.pickTag.allowErrors) {
+          grunt.warn(new Error(errorMessage));
+          return;
+        }
+        grunt.log.warn(errorMessage);
+      }
     });
   });
 
