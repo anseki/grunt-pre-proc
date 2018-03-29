@@ -1,6 +1,6 @@
 {
   "name": "grunt-pre-proc",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "title": "grunt-pre-proc",
   "description": "The super simple preprocessor for front-end development.",
   "keywords": [
