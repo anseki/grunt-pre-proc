@@ -2,7 +2,7 @@
 
 'use strict';
 
-function quiet() {}
+function quiet() { return this; } // eslint-disable-line no-invalid-this
 
 if (!global.grunt) { // Because the code will be re-executed by `proxyquire`.
   global.grunt = require('grunt');
