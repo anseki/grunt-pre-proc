@@ -29,7 +29,7 @@ function resetAll() {
   grunt.warn.resetHistory();
 }
 
-function runTask(options, done, files) {
+function runTask(done, options, files) {
   grunt.initConfig({
     preProc: {
       test: {
@@ -55,7 +55,6 @@ describe('implements a basic flow as file based plugin', () => {
   it('should skip process if no file is input', done => {
     resetAll();
     runTask(
-      {replaceTag: {}}, // Dummy option
       () => {
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
@@ -64,6 +63,7 @@ describe('implements a basic flow as file based plugin', () => {
 
         done();
       },
+      {replaceTag: {}}, // Dummy option
       [{
         src: `${FIXTURES_DIR_PATH}/*.txt`,
         dest: OUTPUT_PATH
@@ -74,7 +74,6 @@ describe('implements a basic flow as file based plugin', () => {
   it('should accept contents from all source files', done => {
     resetAll();
     runTask(
-      {},
       () => {
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
@@ -94,28 +93,28 @@ describe('when option for each method is passed', () => {
   it('should call only pickTag', done => {
     resetAll();
     runTask(
-      {pickTag: {}},
       () => {
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
         expect(preProc.pickTag.calledOnce).to.be.true;
 
         done();
-      }
+      },
+      {pickTag: {}}
     );
   });
 
   it('should call replaceTag and pickTag', done => {
     resetAll();
     runTask(
-      {replaceTag: {}, pickTag: {}},
       () => {
         expect(preProc.replaceTag.calledOnce).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
         expect(preProc.pickTag.calledOnce).to.be.true;
 
         done();
-      }
+      },
+      {replaceTag: {}, pickTag: {}}
     );
   });
 
@@ -146,14 +145,14 @@ describe('pickTag()', () => {
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
         resetAll();
         runTask(
-          test.options,
           () => {
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
             expect(preProc.pickTag.calledOnceWithExactly(test.expectedTag, ALL_CONTENTS)).to.be.true;
 
             done();
-          }
+          },
+          test.options
         );
       });
     });
@@ -187,7 +186,6 @@ describe('replaceTag()', () => {
         resetAll();
         test.options.replaceTag.replacement = 'replacement';
         runTask(
-          test.options,
           () => {
             expect(preProc.replaceTag.calledOnceWithExactly(test.expectedTag,
               'replacement', ALL_CONTENTS, null, void 0)).to.be.true;
@@ -195,7 +193,8 @@ describe('replaceTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
 
             done();
-          }
+          },
+          test.options
         );
       });
     });
@@ -226,7 +225,6 @@ describe('replaceTag()', () => {
         test.options.replaceTag.tag = 'TAG';
         test.options.replaceTag.replacement = 'replacement';
         runTask(
-          test.options,
           () => {
             expect(preProc.replaceTag.calledOnceWithExactly('TAG', 'replacement', ALL_CONTENTS,
               test.expected.srcPath, test.expected.pathTest)).to.be.true;
@@ -234,7 +232,8 @@ describe('replaceTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
 
             done();
-          }
+          },
+          test.options
         );
       });
     });
@@ -267,7 +266,6 @@ describe('removeTag()', () => {
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
         resetAll();
         runTask(
-          test.options,
           () => {
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.calledOnceWithExactly(test.expectedTag,
@@ -275,7 +273,8 @@ describe('removeTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
 
             done();
-          }
+          },
+          test.options
         );
       });
     });
@@ -305,7 +304,6 @@ describe('removeTag()', () => {
         resetAll();
         test.options.removeTag.tag = 'TAG';
         runTask(
-          test.options,
           () => {
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.calledOnceWithExactly('TAG', ALL_CONTENTS,
@@ -313,7 +311,8 @@ describe('removeTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
 
             done();
-          }
+          },
+          test.options
         );
       });
     });
@@ -330,7 +329,6 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS_METHODS,
       () => {
         expect(grunt.file.write.calledOnceWithExactly(
           OUTPUT_PATH, R_METHODS)).to.be.true;
@@ -339,7 +337,8 @@ describe('passed/returned value', () => {
         expect(preProc.pickTag.calledOnce).to.be.true;
 
         done();
-      }
+      },
+      OPTS_METHODS
     );
   });
 
@@ -348,7 +347,6 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS_METHODS,
       () => {
         expect(grunt.file.write.notCalled).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
@@ -357,6 +355,7 @@ describe('passed/returned value', () => {
 
         done();
       },
+      OPTS_METHODS,
       [{
         src: `${FIXTURES_DIR_PATH}/*.txt`,
         dest: OUTPUT_PATH
@@ -372,7 +371,6 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS_PICKTAG,
       () => {
         expect(grunt.file.write.calledOnceWithExactly(
           OUTPUT_PATH, R_PICKTAG)).to.be.true;
@@ -383,7 +381,6 @@ describe('passed/returned value', () => {
 
         resetAll();
         runTask(
-          OPTS_PICKTAG,
           () => {
             expect(preProc.pickTag.calledOnce).to.be.true;
             expect(grunt.warn.calledOnce).to.be.true;
@@ -394,9 +391,11 @@ describe('passed/returned value', () => {
             expect(grunt.warn.args[0].toString()).to.equal(`Error: ${ERR_MSG}`);
 
             done();
-          }
+          },
+          OPTS_PICKTAG
         );
-      }
+      },
+      OPTS_PICKTAG
     );
   });
 
@@ -410,31 +409,31 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS1,
       () => {
         expect(grunt.warn.calledOnce).to.be.true;
         expect(grunt.warn.args[0].toString()).to.equal(`Error: ${ERR_MSG}`);
 
         resetAll();
         runTask(
-          OPTS2,
           () => {
             expect(grunt.warn.calledOnce).to.be.true;
             expect(grunt.warn.args[0].toString()).to.equal(`Error: ${ERR_MSG}`);
 
             resetAll();
             runTask(
-              OPTS3,
               () => {
                 expect(grunt.warn.notCalled).to.be.true;
                 expect(grunt.file.write.notCalled).to.be.true;
 
                 done();
-              }
+              },
+              OPTS3
             );
-          }
+          },
+          OPTS2
         );
-      }
+      },
+      OPTS1
     );
   });
 
@@ -445,7 +444,6 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS_PICKTAG,
       () => {
         expect(grunt.file.write.calledOnceWithExactly(
           OUTPUT_PATH, R_PICKTAG)).to.be.true;
@@ -456,15 +454,16 @@ describe('passed/returned value', () => {
 
         resetAll();
         runTask(
-          OPTS_PICKTAG,
           () => {
             expect(grunt.file.write.notCalled).to.be.true;
             expect(preProc.pickTag.calledOnce).to.be.true;
 
             done();
-          }
+          },
+          OPTS_PICKTAG
         );
-      }
+      },
+      OPTS_PICKTAG
     );
   });
 
@@ -475,7 +474,6 @@ describe('passed/returned value', () => {
 
     resetAll();
     runTask(
-      OPTS_METHODS_ARR,
       () => {
         expect(grunt.file.write.calledOnceWithExactly(
           OUTPUT_PATH, R_METHODS)).to.be.true;
@@ -488,7 +486,6 @@ describe('passed/returned value', () => {
 
         resetAll();
         runTask(
-          OPTS_METHODS_ARR,
           () => {
             expect(grunt.file.write.notCalled).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
@@ -496,9 +493,11 @@ describe('passed/returned value', () => {
             expect(preProc.pickTag.calledOnce).to.be.true;
 
             done();
-          }
+          },
+          OPTS_METHODS_ARR
         );
-      }
+      },
+      OPTS_METHODS_ARR
     );
   });
 
