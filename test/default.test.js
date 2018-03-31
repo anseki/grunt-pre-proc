@@ -30,6 +30,7 @@ function resetAll() {
 }
 
 function runTask(done, options, files) {
+  let error;
   grunt.initConfig({
     preProc: {
       test: {
@@ -41,7 +42,8 @@ function runTask(done, options, files) {
       }
     }
   });
-  grunt.task.options({done});
+  grunt.task.options({done: () => { done(error); }});
+  grunt.task.options({error: err => { error = err; }});
   grunt.task.run('default');
   grunt.task.start({asyncDone: true});
 }
