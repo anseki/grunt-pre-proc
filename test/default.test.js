@@ -5,9 +5,9 @@ const expect = require('chai').expect,
   sinon = require('sinon'),
   proxyquire = require('proxyquire').noPreserveCache(),
   preProc = {
+    pickTag: sinon.spy((tag, content) => (pickTagRturnsNull ? null : `${content}<pickTag>`)),
     replaceTag: sinon.spy((tag, replacement, content) => `${content}<replaceTag>`),
     removeTag: sinon.spy((tag, content) => `${content}<removeTag>`),
-    pickTag: sinon.spy((tag, content) => (pickTagRturnsNull ? null : `${content}<pickTag>`)),
     '@global': true
   },
   grunt = proxyquire('./init-grunt.js', {'pre-proc': preProc}),
@@ -18,13 +18,14 @@ const expect = require('chai').expect,
     .map(fileName => require('fs').readFileSync(
       path.join(FIXTURES_DIR_PATH, fileName), {encoding: 'utf8'}))
     .join(grunt.util.linefeed),
+  OUTPUT_PATH = 'path/to/output',
   SRC1_PATH = path.join(FIXTURES_DIR_PATH, 'content-1.html'),
-  OUTPUT_PATH = 'path/to/output';
+  LIB_NAME = 'preProc';
 
 function resetAll() {
+  preProc.pickTag.resetHistory();
   preProc.replaceTag.resetHistory();
   preProc.removeTag.resetHistory();
-  preProc.pickTag.resetHistory();
   grunt.file.write.resetHistory();
   grunt.warn.resetHistory();
 }
@@ -32,7 +33,7 @@ function resetAll() {
 function runTask(done, options, files) {
   let error;
   grunt.initConfig({
-    preProc: {
+    [LIB_NAME]: {
       test: {
         options,
         files: files || [{
@@ -48,24 +49,45 @@ function runTask(done, options, files) {
   grunt.task.start({asyncDone: true});
 }
 
-grunt.registerTask('default', ['preProc:test']);
+grunt.registerTask('default', [`${LIB_NAME}:test`]);
 sinon.stub(grunt.file, 'write');
 sinon.stub(grunt, 'warn');
 
 describe('implements a basic flow as file based plugin', () => {
+  const OPTS_REPLACETAG = {tag: 'TAG1'};
 
-  it('should skip process if no file is input', done => {
+  it('should accept contents from all source files', done => {
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
+        expect(preProc.pickTag.notCalled).to.be.true;
+        expect(preProc.replaceTag
+          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, ALL_CONTENTS, null, void 0))
+          .to.be.true;
+        expect(preProc.removeTag.notCalled).to.be.true;
+        expect(grunt.file.write
+          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<replaceTag>`)).to.be.true;
+
+        done();
+      },
+      {replaceTag: OPTS_REPLACETAG}
+    );
+  });
+
+  it('should skip process if no file is input', done => {
+    pickTagRturnsNull = false;
+    resetAll();
+    runTask(
+      () => {
+        expect(preProc.pickTag.notCalled).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.notCalled).to.be.true;
         expect(grunt.file.write.notCalled).to.be.true;
 
         done();
       },
-      {replaceTag: {}}, // Dummy option
+      {replaceTag: OPTS_REPLACETAG},
       [{
         src: `${FIXTURES_DIR_PATH}/*.txt`,
         dest: OUTPUT_PATH
@@ -73,50 +95,45 @@ describe('implements a basic flow as file based plugin', () => {
     );
   });
 
-  it('should accept contents from all source files', done => {
-    resetAll();
-    runTask(
-      () => {
-        expect(preProc.replaceTag.notCalled).to.be.true;
-        expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.notCalled).to.be.true;
-        expect(grunt.file.write.calledOnceWithExactly(
-          OUTPUT_PATH, ALL_CONTENTS)).to.be.true;
-
-        done();
-      }
-    );
-  });
-
 });
 
 describe('when option for each method is passed', () => {
+  const OPTS_PICKTAG = {tag: 'TAG1'},
+    OPTS_REPLACETAG = {tag: 'TAG2'};
 
   it('should call only pickTag', done => {
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(grunt.file.write
+          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
 
         done();
       },
-      {pickTag: {}}
+      {pickTag: OPTS_PICKTAG}
     );
   });
 
-  it('should call replaceTag and pickTag', done => {
+  it('should call pickTag and replaceTag', done => {
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
-        expect(preProc.replaceTag.calledOnce).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.replaceTag
+          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, `${ALL_CONTENTS}<pickTag>`,
+            null, void 0)).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(grunt.file.write
+          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag><replaceTag>`)).to.be.true;
 
         done();
       },
-      {replaceTag: {}, pickTag: {}}
+      {pickTag: OPTS_PICKTAG, replaceTag: OPTS_REPLACETAG}
     );
   });
 
@@ -145,12 +162,14 @@ describe('pickTag()', () => {
     ].forEach(test => {
       it(`options.pickTag.tag: ${test.options.pickTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         runTask(
           () => {
+            expect(preProc.pickTag
+              .calledOnceWithExactly(test.expectedTag, ALL_CONTENTS)).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
-            expect(preProc.pickTag.calledOnceWithExactly(test.expectedTag, ALL_CONTENTS)).to.be.true;
 
             done();
           },
@@ -185,14 +204,16 @@ describe('replaceTag()', () => {
     ].forEach(test => {
       it(`options.replaceTag.tag: ${test.options.replaceTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         test.options.replaceTag.replacement = 'replacement';
         runTask(
           () => {
-            expect(preProc.replaceTag.calledOnceWithExactly(test.expectedTag,
-              'replacement', ALL_CONTENTS, null, void 0)).to.be.true;
-            expect(preProc.removeTag.notCalled).to.be.true;
             expect(preProc.pickTag.notCalled).to.be.true;
+            expect(preProc.replaceTag
+              .calledOnceWithExactly(test.expectedTag, 'replacement', ALL_CONTENTS, null, void 0))
+              .to.be.true;
+            expect(preProc.removeTag.notCalled).to.be.true;
 
             done();
           },
@@ -223,15 +244,17 @@ describe('replaceTag()', () => {
     ].forEach(test => {
       it(`options.replaceTag.pathTest: ${test.options.replaceTag.pathTest || 'NONE'}` +
           ` / options.pathTest: ${test.options.pathTest || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         test.options.replaceTag.tag = 'TAG';
         test.options.replaceTag.replacement = 'replacement';
         runTask(
           () => {
-            expect(preProc.replaceTag.calledOnceWithExactly('TAG', 'replacement', ALL_CONTENTS,
-              test.expected.srcPath, test.expected.pathTest)).to.be.true;
-            expect(preProc.removeTag.notCalled).to.be.true;
             expect(preProc.pickTag.notCalled).to.be.true;
+            expect(preProc.replaceTag
+              .calledOnceWithExactly('TAG', 'replacement', ALL_CONTENTS,
+                test.expected.srcPath, test.expected.pathTest)).to.be.true;
+            expect(preProc.removeTag.notCalled).to.be.true;
 
             done();
           },
@@ -266,13 +289,14 @@ describe('removeTag()', () => {
     ].forEach(test => {
       it(`options.removeTag.tag: ${test.options.removeTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         runTask(
           () => {
-            expect(preProc.replaceTag.notCalled).to.be.true;
-            expect(preProc.removeTag.calledOnceWithExactly(test.expectedTag,
-              ALL_CONTENTS, null, void 0)).to.be.true;
             expect(preProc.pickTag.notCalled).to.be.true;
+            expect(preProc.replaceTag.notCalled).to.be.true;
+            expect(preProc.removeTag
+              .calledOnceWithExactly(test.expectedTag, ALL_CONTENTS, null, void 0)).to.be.true;
 
             done();
           },
@@ -303,14 +327,16 @@ describe('removeTag()', () => {
     ].forEach(test => {
       it(`options.removeTag.pathTest: ${test.options.removeTag.pathTest || 'NONE'}` +
           ` / options.pathTest: ${test.options.pathTest || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         test.options.removeTag.tag = 'TAG';
         runTask(
           () => {
-            expect(preProc.replaceTag.notCalled).to.be.true;
-            expect(preProc.removeTag.calledOnceWithExactly('TAG', ALL_CONTENTS,
-              test.expected.srcPath, test.expected.pathTest)).to.be.true;
             expect(preProc.pickTag.notCalled).to.be.true;
+            expect(preProc.replaceTag.notCalled).to.be.true;
+            expect(preProc.removeTag
+              .calledOnceWithExactly('TAG', ALL_CONTENTS,
+                test.expected.srcPath, test.expected.pathTest)).to.be.true;
 
             done();
           },
@@ -323,41 +349,42 @@ describe('removeTag()', () => {
 });
 
 describe('passed/returned value', () => {
-  const OPTS_METHODS = {pickTag: {}, replaceTag: {}, removeTag: {}, tag: 'TAG1'},
-    R_METHODS = `${ALL_CONTENTS}<pickTag><replaceTag><removeTag>`;
+  const OPTS_ALL = {pickTag: {}, replaceTag: {}, removeTag: {}, tag: 'TAG1'},
+    RES_ALL = `${ALL_CONTENTS}<pickTag><replaceTag><removeTag>`;
 
   it('should return processed value by all required methods', done => {
     pickTagRturnsNull = false;
-
     resetAll();
     runTask(
       () => {
-        expect(grunt.file.write.calledOnceWithExactly(
-          OUTPUT_PATH, R_METHODS)).to.be.true;
-        expect(preProc.replaceTag.calledOnce).to.be.true;
-        expect(preProc.removeTag.calledOnce).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.replaceTag
+          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${ALL_CONTENTS}<pickTag>`, null, void 0))
+          .to.be.true;
+        expect(preProc.removeTag
+          .calledOnceWithExactly(OPTS_ALL.tag, `${ALL_CONTENTS}<pickTag><replaceTag>`,
+            null, void 0)).to.be.true;
+        expect(grunt.file.write.calledOnceWithExactly(OUTPUT_PATH, RES_ALL)).to.be.true;
 
         done();
       },
-      OPTS_METHODS
+      OPTS_ALL
     );
   });
 
-  it('should not save file when no file is input', done => {
+  it('should not save file if no file is input', done => {
     pickTagRturnsNull = false;
-
     resetAll();
     runTask(
       () => {
-        expect(grunt.file.write.notCalled).to.be.true;
+        expect(preProc.pickTag.notCalled).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.notCalled).to.be.true;
+        expect(grunt.file.write.notCalled).to.be.true;
 
         done();
       },
-      OPTS_METHODS,
+      OPTS_ALL,
       [{
         src: `${FIXTURES_DIR_PATH}/*.txt`,
         dest: OUTPUT_PATH
@@ -365,26 +392,25 @@ describe('passed/returned value', () => {
     );
   });
 
-  it('should throw an error if pickTag returned null', done => {
+  it('should throw an error if pickTag returned a null', done => {
     const OPTS_PICKTAG = {pickTag: {}, tag: 'TAG1'},
-      R_PICKTAG = `${ALL_CONTENTS}<pickTag>`,
       ERR_MSG = `Not found tag: ${OPTS_PICKTAG.tag}`;
-    pickTagRturnsNull = false;
 
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
-        expect(grunt.file.write.calledOnceWithExactly(
-          OUTPUT_PATH, R_PICKTAG)).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(grunt.file.write
+          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
 
         // Returns null
         pickTagRturnsNull = true;
-
         resetAll();
         runTask(
           () => {
-            expect(preProc.pickTag.calledOnce).to.be.true;
+            expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+            expect(grunt.file.write.notCalled).to.be.true;
             expect(grunt.warn.calledOnce).to.be.true;
             // expect(grunt.warn.args[0] instanceof Error).to.be.true;
             // expect(grunt.warn.args[0]).to.be.an('error', ERR_MSG);
@@ -407,25 +433,27 @@ describe('passed/returned value', () => {
       OPTS2 = {tag: 'TAG1', pickTag: {allowErrors: false}},
       OPTS3 = {tag: 'TAG1', pickTag: {allowErrors: true}},
       ERR_MSG = `Not found tag: ${OPTS1.tag}`;
-    pickTagRturnsNull = true;
 
+    pickTagRturnsNull = true;
     resetAll();
     runTask(
       () => {
+        expect(grunt.file.write.notCalled).to.be.true;
         expect(grunt.warn.calledOnce).to.be.true;
         expect(grunt.warn.args[0].toString()).to.equal(`Error: ${ERR_MSG}`);
 
         resetAll();
         runTask(
           () => {
+            expect(grunt.file.write.notCalled).to.be.true;
             expect(grunt.warn.calledOnce).to.be.true;
             expect(grunt.warn.args[0].toString()).to.equal(`Error: ${ERR_MSG}`);
 
             resetAll();
             runTask(
               () => {
-                expect(grunt.warn.notCalled).to.be.true;
                 expect(grunt.file.write.notCalled).to.be.true;
+                expect(grunt.warn.notCalled).to.be.true;
 
                 done();
               },
@@ -439,26 +467,26 @@ describe('passed/returned value', () => {
     );
   });
 
-  it('should not save file if pickTag returned null with allowErrors', done => {
-    const OPTS_PICKTAG = {pickTag: {allowErrors: true}, tag: 'TAG1'},
-      R_PICKTAG = `${ALL_CONTENTS}<pickTag>`;
-    pickTagRturnsNull = false;
+  it('should not save file if pickTag returned a null with allowErrors', done => {
+    const OPTS_PICKTAG = {pickTag: {allowErrors: true}, tag: 'TAG1'};
 
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
-        expect(grunt.file.write.calledOnceWithExactly(
-          OUTPUT_PATH, R_PICKTAG)).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(grunt.file.write
+          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
 
         // Returns null
         pickTagRturnsNull = true;
-
         resetAll();
         runTask(
           () => {
+            expect(preProc.pickTag
+              .calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
             expect(grunt.file.write.notCalled).to.be.true;
-            expect(preProc.pickTag.calledOnce).to.be.true;
+            expect(grunt.warn.notCalled).to.be.true;
 
             done();
           },
@@ -469,37 +497,38 @@ describe('passed/returned value', () => {
     );
   });
 
-  it('should not call other methods when pickTag returned null', done => {
-    const OPTS_METHODS_ARR =
-      {pickTag: {allowErrors: true}, replaceTag: {}, removeTag: {}, tag: 'TAG1'};
-    pickTagRturnsNull = false;
+  it('should not call other methods when pickTag returned a null', done => {
+    const OPTS_ALL = {pickTag: {allowErrors: true}, replaceTag: {}, removeTag: {}, tag: 'TAG1'};
 
+    pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
-        expect(grunt.file.write.calledOnceWithExactly(
-          OUTPUT_PATH, R_METHODS)).to.be.true;
-        expect(preProc.replaceTag.calledOnce).to.be.true;
-        expect(preProc.removeTag.calledOnce).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.replaceTag
+          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${ALL_CONTENTS}<pickTag>`,
+            null, void 0)).to.be.true;
+        expect(preProc.removeTag
+          .calledOnceWithExactly(OPTS_ALL.tag, `${ALL_CONTENTS}<pickTag><replaceTag>`,
+            null, void 0)).to.be.true;
+        expect(grunt.file.write.calledOnceWithExactly(OUTPUT_PATH, RES_ALL)).to.be.true;
 
         // Returns null
         pickTagRturnsNull = true;
-
         resetAll();
         runTask(
           () => {
-            expect(grunt.file.write.notCalled).to.be.true;
+            expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
-            expect(preProc.pickTag.calledOnce).to.be.true;
+            expect(grunt.file.write.notCalled).to.be.true;
 
             done();
           },
-          OPTS_METHODS_ARR
+          OPTS_ALL
         );
       },
-      OPTS_METHODS_ARR
+      OPTS_ALL
     );
   });
 
