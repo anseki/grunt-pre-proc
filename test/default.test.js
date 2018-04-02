@@ -14,7 +14,7 @@ const expect = require('chai').expect,
   path = require('path'),
 
   FIXTURES_DIR_PATH = path.resolve(__dirname, 'fixtures'),
-  ALL_CONTENTS = ['content-1.html', 'content-2.html']
+  CONTENTS = ['content-1.html', 'content-2.html']
     .map(fileName => require('fs').readFileSync(
       path.join(FIXTURES_DIR_PATH, fileName), {encoding: 'utf8'}))
     .join(grunt.util.linefeed),
@@ -63,11 +63,11 @@ describe('implements a basic flow as file based plugin', () => {
       () => {
         expect(preProc.pickTag.notCalled).to.be.true;
         expect(preProc.replaceTag
-          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, ALL_CONTENTS, null, void 0))
+          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, CONTENTS, null, void 0))
           .to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
         expect(grunt.file.write
-          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<replaceTag>`)).to.be.true;
+          .calledOnceWithExactly(OUTPUT_PATH, `${CONTENTS}<replaceTag>`)).to.be.true;
 
         done();
       },
@@ -106,11 +106,11 @@ describe('when option for each method is passed', () => {
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
         expect(grunt.file.write
-          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
+          .calledOnceWithExactly(OUTPUT_PATH, `${CONTENTS}<pickTag>`)).to.be.true;
 
         done();
       },
@@ -123,13 +123,13 @@ describe('when option for each method is passed', () => {
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
         expect(preProc.replaceTag
-          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, `${ALL_CONTENTS}<pickTag>`,
+          .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, `${CONTENTS}<pickTag>`,
             null, void 0)).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
         expect(grunt.file.write
-          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag><replaceTag>`)).to.be.true;
+          .calledOnceWithExactly(OUTPUT_PATH, `${CONTENTS}<pickTag><replaceTag>`)).to.be.true;
 
         done();
       },
@@ -167,7 +167,7 @@ describe('pickTag()', () => {
         runTask(
           () => {
             expect(preProc.pickTag
-              .calledOnceWithExactly(test.expectedTag, ALL_CONTENTS)).to.be.true;
+              .calledOnceWithExactly(test.expectedTag, CONTENTS)).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
 
@@ -211,7 +211,7 @@ describe('replaceTag()', () => {
           () => {
             expect(preProc.pickTag.notCalled).to.be.true;
             expect(preProc.replaceTag
-              .calledOnceWithExactly(test.expectedTag, 'replacement', ALL_CONTENTS, null, void 0))
+              .calledOnceWithExactly(test.expectedTag, 'replacement', CONTENTS, null, void 0))
               .to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
 
@@ -252,7 +252,7 @@ describe('replaceTag()', () => {
           () => {
             expect(preProc.pickTag.notCalled).to.be.true;
             expect(preProc.replaceTag
-              .calledOnceWithExactly('TAG', 'replacement', ALL_CONTENTS,
+              .calledOnceWithExactly('TAG', 'replacement', CONTENTS,
                 test.expected.srcPath, test.expected.pathTest)).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
 
@@ -296,7 +296,7 @@ describe('removeTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag
-              .calledOnceWithExactly(test.expectedTag, ALL_CONTENTS, null, void 0)).to.be.true;
+              .calledOnceWithExactly(test.expectedTag, CONTENTS, null, void 0)).to.be.true;
 
             done();
           },
@@ -335,7 +335,7 @@ describe('removeTag()', () => {
             expect(preProc.pickTag.notCalled).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag
-              .calledOnceWithExactly('TAG', ALL_CONTENTS,
+              .calledOnceWithExactly('TAG', CONTENTS,
                 test.expected.srcPath, test.expected.pathTest)).to.be.true;
 
             done();
@@ -350,19 +350,19 @@ describe('removeTag()', () => {
 
 describe('passed/returned value', () => {
   const OPTS_ALL = {pickTag: {}, replaceTag: {}, removeTag: {}, tag: 'TAG1'},
-    RES_ALL = `${ALL_CONTENTS}<pickTag><replaceTag><removeTag>`;
+    RES_ALL = `${CONTENTS}<pickTag><replaceTag><removeTag>`;
 
   it('should return processed value by all required methods', done => {
     pickTagRturnsNull = false;
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, CONTENTS)).to.be.true;
         expect(preProc.replaceTag
-          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${ALL_CONTENTS}<pickTag>`, null, void 0))
+          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${CONTENTS}<pickTag>`, null, void 0))
           .to.be.true;
         expect(preProc.removeTag
-          .calledOnceWithExactly(OPTS_ALL.tag, `${ALL_CONTENTS}<pickTag><replaceTag>`,
+          .calledOnceWithExactly(OPTS_ALL.tag, `${CONTENTS}<pickTag><replaceTag>`,
             null, void 0)).to.be.true;
         expect(grunt.file.write.calledOnceWithExactly(OUTPUT_PATH, RES_ALL)).to.be.true;
 
@@ -400,16 +400,16 @@ describe('passed/returned value', () => {
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
         expect(grunt.file.write
-          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
+          .calledOnceWithExactly(OUTPUT_PATH, `${CONTENTS}<pickTag>`)).to.be.true;
 
         // Returns null
         pickTagRturnsNull = true;
         resetAll();
         runTask(
           () => {
-            expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+            expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
             expect(grunt.file.write.notCalled).to.be.true;
             expect(grunt.warn.calledOnce).to.be.true;
             // expect(grunt.warn.args[0] instanceof Error).to.be.true;
@@ -474,9 +474,9 @@ describe('passed/returned value', () => {
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
         expect(grunt.file.write
-          .calledOnceWithExactly(OUTPUT_PATH, `${ALL_CONTENTS}<pickTag>`)).to.be.true;
+          .calledOnceWithExactly(OUTPUT_PATH, `${CONTENTS}<pickTag>`)).to.be.true;
 
         // Returns null
         pickTagRturnsNull = true;
@@ -484,7 +484,7 @@ describe('passed/returned value', () => {
         runTask(
           () => {
             expect(preProc.pickTag
-              .calledOnceWithExactly(OPTS_PICKTAG.tag, ALL_CONTENTS)).to.be.true;
+              .calledOnceWithExactly(OPTS_PICKTAG.tag, CONTENTS)).to.be.true;
             expect(grunt.file.write.notCalled).to.be.true;
             expect(grunt.warn.notCalled).to.be.true;
 
@@ -504,12 +504,12 @@ describe('passed/returned value', () => {
     resetAll();
     runTask(
       () => {
-        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, CONTENTS)).to.be.true;
         expect(preProc.replaceTag
-          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${ALL_CONTENTS}<pickTag>`,
+          .calledOnceWithExactly(OPTS_ALL.tag, void 0, `${CONTENTS}<pickTag>`,
             null, void 0)).to.be.true;
         expect(preProc.removeTag
-          .calledOnceWithExactly(OPTS_ALL.tag, `${ALL_CONTENTS}<pickTag><replaceTag>`,
+          .calledOnceWithExactly(OPTS_ALL.tag, `${CONTENTS}<pickTag><replaceTag>`,
             null, void 0)).to.be.true;
         expect(grunt.file.write.calledOnceWithExactly(OUTPUT_PATH, RES_ALL)).to.be.true;
 
@@ -518,7 +518,7 @@ describe('passed/returned value', () => {
         resetAll();
         runTask(
           () => {
-            expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, ALL_CONTENTS)).to.be.true;
+            expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, CONTENTS)).to.be.true;
             expect(preProc.replaceTag.notCalled).to.be.true;
             expect(preProc.removeTag.notCalled).to.be.true;
             expect(grunt.file.write.notCalled).to.be.true;
