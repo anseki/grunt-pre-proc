@@ -1,6 +1,6 @@
 # grunt-pre-proc
 
-[![npm](https://img.shields.io/npm/v/grunt-pre-proc.svg)](https://www.npmjs.com/package/grunt-pre-proc) [![GitHub issues](https://img.shields.io/github/issues/anseki/grunt-pre-proc.svg)](https://github.com/anseki/grunt-pre-proc/issues) [![David](https://img.shields.io/david/anseki/grunt-pre-proc.svg)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+[![npm](https://img.shields.io/npm/v/grunt-pre-proc.svg)](https://www.npmjs.com/package/grunt-pre-proc) [![GitHub issues](https://img.shields.io/github/issues/anseki/grunt-pre-proc.svg)](https://github.com/anseki/grunt-pre-proc/issues) [![David](https://img.shields.io/david/anseki/grunt-pre-proc.svg)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 This [Grunt](http://gruntjs.com/) plugin is wrapper of [preProc](https://github.com/anseki/pre-proc).
 
